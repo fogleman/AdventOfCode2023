@@ -5,11 +5,10 @@ import re
 total = 0
 counts = defaultdict(int)
 for line in fileinput.input():
-    nums = re.findall(r'\d+', line)
-    nums = list(map(int, nums))
-    card, nums = nums[0], nums[1:]
-    winning, have = nums[:10], nums[10:]
-    count = len(set(winning) & set(have))
+    nums = re.findall(r'\d+|\|', line)
+    card = int(nums.pop(0))
+    i = nums.index('|')
+    count = len(set(nums[:i]) & set(nums[i:]))
     counts[card] += 1
     if count:
         total += 2 ** (count - 1)
