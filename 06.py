@@ -1,23 +1,12 @@
-from itertools import *
-from collections import *
 import fileinput
-import math
 import re
 
 lines = list(fileinput.input())
-
 times = list(map(int, re.findall(r'\d+', lines[0])))
 dists = list(map(int, re.findall(r'\d+', lines[1])))
 
 def ways(time, dist):
-    count = 0
-    for t in range(1, time):
-        s = t
-        remaining = time - t
-        d = remaining * s
-        if d > dist:
-            count += 1
-    return count
+    return sum((time - t) * t > dist for t in range(1, time))
 
 result = 1
 for t, d in zip(times, dists):
