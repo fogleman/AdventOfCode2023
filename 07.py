@@ -1,59 +1,37 @@
-from itertools import *
-from collections import *
+from itertools import product
+from collections import Counter
 import fileinput
-import math
-import re
-
-lines = list(fileinput.input())
-
-def value(card):
-    # return 'AKQJT98765432'.index(card)
-    return 'AKQT98765432J'.index(card)
-
-def hand_value(hand):
-    return tuple(value(c) for c in hand)
 
 def rank(hand):
-    c = Counter(hand)
-    counts = Counter(c.values())
-    # print(counts)
-    if counts[5]:
-        return 0
-    if counts[4]:
-        return 1
-    if counts[3] and counts[2]:
-        return 2
-    if counts[3]:
-        return 3
-    if counts[2] > 1:
-        return 4
-    if counts[2]:
-        return 5
+    c = Counter(Counter(hand).values())
+    if c[5]: return 0
+    if c[4]: return 1
+    if c[3] and c[2]: return 2
+    if c[3]: return 3
+    if c[2] > 1: return 4
+    if c[2]: return 5
     return 6
 
-def best_rank(hand):
-    jokers = hand.count('J')
-    if not jokers:
-        return rank(hand)
-    hand = ''.join(c for c in hand if c != 'J')
-    best = 99
-    for cs in product('AKQT98765432', repeat=jokers):
-        h = hand + ''.join(cs)
-        best = min(best, rank(h))
-    return best
+def best_rank(hand, part2):
+    jokers = 0
+    if part2:
+        jokers = hand.count('J')
+        hand = ''.join(c for c in hand if c != 'J')
+    return min(rank(hand + ''.join(cs))
+        for cs in product('23456789TQKA', repeat=jokers))
 
-items = []
-for line in lines:
-    hand, bid = line.strip().split()
-    bid = int(bid)
-    # r = rank(hand)
-    r = best_rank(hand)
-    items.append((r, hand_value(hand), bid))
+def run(lines, part2):
+    cards = 'AKQT98765432J' if part2 else 'AKQJT98765432'
+    items = []
+    for line in lines:
+        hand, bid = line.strip().split()
+        items.append((
+            best_rank(hand, part2),
+            tuple(cards.index(c) for c in hand),
+            int(bid)))
+    items.sort(reverse=True)
+    return sum((i + 1) * bid for i, (_, _, bid) in enumerate(items))
 
-items.sort(reverse=True)
-total = 0
-for i, x in enumerate(items):
-    print(x)
-    r, hand, bid = x
-    total += (i + 1) * bid
-print(total)
+lines = list(fileinput.input())
+for i in range(2):
+    print(run(lines, i))
