@@ -1,20 +1,19 @@
-from itertools import cycle
-from collections import defaultdict
-from math import lcm
+from itertools import *
+from collections import *
+from math import *
 import fileinput
 import re
 
 lines = list(fileinput.input())
-RL = cycle(lines[0].strip())
 nodes = {}
 for line in lines[2:]:
     key, l, r = re.findall(r'\w+', line)
     nodes[key] = (l, r)
 
-def run(part2):
+def run(keys):
     steps = 0
-    keys = [x for x in nodes if x.endswith('A')] if part2 else ['AAA']
     times = defaultdict(list)
+    RL = cycle(lines[0].strip())
     while True:
         for i, k in enumerate(keys):
             if k.endswith('Z'):
@@ -27,5 +26,5 @@ def run(part2):
         steps += 1
     return steps
 
-for i in range(2):
-    print(run(i))
+print(run(['AAA']))
+print(run([x for x in nodes if x.endswith('A')]))
