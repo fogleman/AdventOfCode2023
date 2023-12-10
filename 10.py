@@ -1,11 +1,23 @@
-from itertools import *
-from collections import *
-from math import *
+from collections import defaultdict
 import fileinput
-import heapq
-import re
 
-grid = {}
+NEIGHBORS = {
+    '|': [(0, -1), (0, 1)],
+    '-': [(-1, 0), (1, 0)],
+    'L': [(0, -1), (1, 0)],
+    'J': [(-1, 0), (0, -1)],
+    '7': [(-1, 0), (0, 1)],
+    'F': [(0, 1), (1, 0)],
+}
+
+CW = {
+    (0, -1): (1, 0), (1, 0): (0, 1),
+    (0, 1): (-1, 0), (-1, 0): (0, -1),
+}
+
+CCW = dict((v, k) for k, v in CW.items())
+
+grid = defaultdict(lambda: '.')
 start = None
 for y, line in enumerate(fileinput.input()):
     for x, c in enumerate(line.rstrip()):
@@ -13,104 +25,63 @@ for y, line in enumerate(fileinput.input()):
         if c == 'S':
             start = (x, y)
 
-x0 = min(x for x, y in grid)
-y0 = min(y for x, y in grid)
-x1 = max(x for x, y in grid)+1
-y1 = max(y for x, y in grid)+1
+def starting_tile(grid, start):
+    x, y = start
+    for tile in NEIGHBORS:
+        for dx, dy in NEIGHBORS[tile]:
+            other = grid[(x + dx, y + dy)]
+            if not any((x + dx + nx, y + dy + ny) == start
+                for nx, ny in NEIGHBORS.get(other, [])):
+                    break
+        else:
+            return tile
 
-NEIGHBORS = {
-    '|': [(0, 1), (0, -1)],
-    '-': [(1, 0), (-1, 0)],
-    'L': [(0, -1), (1, 0)],
-    'J': [(0, -1), (-1, 0)],
-    '7': [(0, 1), (-1, 0)],
-    'F': [(0, 1), (1, 0)],
-    'S': [(1, 0), (0, 1)],
-    '.': [],
-}
+grid[start] = starting_tile(grid, start)
 
-def shortest_path(cells, source, target):
-    dxs, dys = [0, 0, -1, 1], [-1, 1, 0, 0]
-    seen, queue = set(), [(0, source)]
-    while queue:
-        d, p = heapq.heappop(queue)
-        if p == target:
-            return d
-        seen.add(p)
-        for dx, dy in zip(dxs, dys):
-            q = (p[0] + dx, p[1] + dy)
-            if q in cells and q not in seen:
-                heapq.heappush(queue, (d + 1, q))
-
-def heuristic(p, t):
-    return abs(p[0] - t[0]) + abs(p[1] - t[1])
-
-def shortest_path(cells, source, target):
-    seen, queue = set(), [(heuristic(source, target), 0, source)]
-    while queue:
-        _, d, p = heapq.heappop(queue)
-        if p == target:
-            return d
-        seen.add(p)
-        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-            q = (p[0] + dx, p[1] + dy)
-            if q in cells and q not in seen:
-                heapq.heappush(queue,
-                    (heuristic(q, target), d + 1, q))
-
-def search(grid, x, y):
-    dist = {}
-    q = [(x, y, 0)]
-    M = 0
-    while q:
-        nx, ny, d = q.pop(0)
-        if (nx, ny) not in grid:
-            continue
-        if dist.get((nx, ny), 1e9) <= d:
-            continue
-        dist[(nx, ny)] = d
-        if d > M:
-            M = d
-            print(M, nx, ny)
-        c = grid[(nx, ny)]
-        for dx, dy in NEIGHBORS[c]:
-            nnx, nny = nx + dx, ny + dy
-            q.append((nnx, nny, d + 1))
-
-    keys = set(dist)
-    for y in range(y0, y1):
-        for x in range(x0, x1):
-            print('X ' if (x, y) in keys else '. ', end='')
-        print()
-        print()
-
-    cells = set()
-    for y in range(y0, y1):
-        for x in range(x0, x1):
-            if (x, y) in keys:
-                continue
-            for dx in range(-1, 2):
-                for dy in range(-1, 2):
-                    cells.add((3 * x + dx, 3 * y + dy))
-    for x, y in keys:
-        # for dx in range(-1, 2):
-        #     for dy in range(-1, 2):
-        #         cells.remove((3 * x + dx, 3 * y + dy))
-        cells.add((3 * x + 0, 3 * y + 0))
+def find_path(grid, start):
+    path = []
+    seen = set()
+    x, y = start
+    while True:
+        path.append((x, y))
+        seen.add((x, y))
         for dx, dy in NEIGHBORS[grid[(x, y)]]:
-            cells.add((3 * x + dx, 3 * y + dy))
-    count = 0
-    for p in cells:
-        x, y = p
-        if x%3==0 and y%3==0:
-            if shortest_path(cells, p, (0, 0)) is None:
-                count += 1
-    print(count)
+            nx, ny = x + dx, y + dy
+            if (nx, ny) not in seen:
+                x, y = nx, ny
+                break
+        else:
+            break
+    return path
 
-    for y in range(y0*3, y1*3):
-        for x in range(x0*3, x1*3):
-            print('. ' if (x, y) in cells else 'X ', end='')
-        print()
-        print()
+path = find_path(grid, start)
+print(len(path) // 2)
 
-search(grid, *start)
+def flood_fill(grid, seen, start):
+    result = set()
+    queue = [start]
+    while queue:
+        x, y = queue.pop()
+        if (x, y) in seen or (x, y) in result:
+            continue
+        result.add((x, y))
+        for nx, ny in ((x, y-1), (x-1, y), (x, y+1), (x+1, y)):
+            if (nx, ny) in grid and (nx, ny) not in seen:
+                queue.append((nx, ny))
+    return result
+
+def inside(grid, path, d):
+    result = set()
+    seen = set(path)
+    for a, b in zip(path, path[1:]):
+        x0, y0 = a
+        x1, y1 = b
+        dx, dy = d[(x1 - x0, y1 - y0)]
+        for p in [(x0 + dx, y0 + dy), (x1 + dx, y1 + dy)]:
+            if p not in result:
+                result |= flood_fill(grid, seen, p)
+    return result
+
+a = len(inside(grid, path, CW))
+b = len(inside(grid, path, CCW))
+print(min(a, b))
