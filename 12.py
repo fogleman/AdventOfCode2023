@@ -1,8 +1,6 @@
 import fileinput
 
-lines = list(fileinput.input())
-
-def search(pattern, sizes, i, s, n, p, memo):
+def search(pattern, sizes, memo, i=0, s=0, n=0, p=0):
     key = (i, s, n, p)
     if key in memo:
         return memo[key]
@@ -16,37 +14,32 @@ def search(pattern, sizes, i, s, n, p, memo):
             return 0
         return 1
     sn = s + 1 if p else s
-    a = lambda: search(pattern, sizes, i+1, s, n+1, 1, memo)
-    b = lambda: search(pattern, sizes, i+1, sn, 0, 0, memo)
+    a = lambda: search(pattern, sizes, memo, i+1, s, n+1, 1)
+    b = lambda: search(pattern, sizes, memo, i+1, sn, 0, 0)
     result = 0
     c = pattern[i]
-    if c == '?':
+    if c == '#':
+        if s < ns and n < sizes[s]:
+            result = a()
+    elif c == '.':
+        if n == 0 or (s < ns and n == sizes[s]):
+            result = b()
+    else:
         if n == 0:
             result = a() + b()
         elif s < ns and n < sizes[s]:
             result = a()
         elif s < ns and n == sizes[s]:
             result = b()
-        else:
-            return 0
-    elif c == '#':
-        if s >= ns or n >= sizes[s]:
-            return 0
-        result = a()
-    elif c == '.':
-        if n > 0 and (s >= ns or n != sizes[s]):
-            return 0
-        result = b()
     memo[key] = result
     return result
 
-for i in range(2):
-    total = 0
-    for index, line in enumerate(lines):
-        pattern, sizes = line.split()
-        sizes = list(map(int, sizes.split(',')))
-        if i:
-            pattern = '?'.join([pattern] * 5)
-            sizes *= 5
-        total += search(pattern, sizes, 0, 0, 0, 0, {})
-    print(total)
+total1 = total2 = 0
+for line in fileinput.input():
+    pattern, sizes = line.split()
+    sizes = list(map(int, sizes.split(',')))
+    total1 += search(pattern, sizes, {})
+    total2 += search('?'.join([pattern] * 5), sizes * 5, {})
+
+print(total1)
+print(total2)
