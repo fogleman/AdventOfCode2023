@@ -53,7 +53,7 @@ def check(a, b):
 
 i0 = 200000000000000
 i1 = 400000000000000
-count = 0
+n = 0
 for i, p0 in enumerate(particles):
     for j, p1 in enumerate(particles[i+1:]):
         p = check(p0, p1)
@@ -61,8 +61,8 @@ for i, p0 in enumerate(particles):
             continue
         x, y = p
         if x >= i0 and x <= i1 and y >= i0 and y <= i1:
-            count += 1
-print(count)
+            n += 1
+print(n)
 
 # x0 + vx0 * t0 = x1 + vx1 * t0
 # x0 + vx0 * t1 = x2 + vx2 * t1
@@ -72,3 +72,47 @@ print(count)
 # 19-2*a=x+v*a
 # 18-1*b=x+v*b
 # 20-2*c=x+v*c
+
+N = 1000
+vxs = set(range(-N, N))
+vys = set(range(-N, N))
+vzs = set(range(-N, N))
+
+def update(a, b):
+    x0, y0, z0, vx0, vy0, vz0 = a
+    x1, y1, z1, vx1, vy1, vz1 = b
+    if vx0 == vx1:
+        dx = abs(x0 - x1)
+        for x in range(-N, N):
+            if x != vx0 and dx % (x - vx0) != 0:
+                vxs.discard(x)
+    if vy0 == vy1:
+        dy = abs(y0 - y1)
+        for y in range(-N, N):
+            if y != vy0 and dy % (y - vy0) != 0:
+                vys.discard(y)
+    if vz0 == vz1:
+        dz = abs(z0 - z1)
+        for z in range(-N, N):
+            if z != vz0 and dz % (z - vz0) != 0:
+                vzs.discard(z)
+
+for i, p0 in enumerate(particles):
+    for j, p1 in enumerate(particles[i+1:]):
+        update(p0, p1)
+
+vx = list(vxs)[0]
+vy = list(vys)[0]
+vz = list(vzs)[0]
+
+apx, apy, apz, avx, avy, avz = particles[0]
+bpx, bpy, bpz, bvx, bvy, bvz = particles[1]
+ma = (avy - vy) / (avx - vx)
+mb = (bvy - vy) / (bvx - vx)
+ca = apy - (ma * apx)
+cb = bpy - (mb * bpx)
+x = int((cb - ca) / (ma - mb))
+y = int(ma * x + ca)
+t = (x - apx) // (avx - vx)
+z = apz + (avz - vz) * t
+print(x + y + z)
